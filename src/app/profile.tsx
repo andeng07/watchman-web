@@ -1,115 +1,179 @@
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card.tsx";
 import {Avatar} from "@/components/ui/avatar.tsx";
 import {AvatarImage} from "@radix-ui/react-avatar";
-import {Separator} from "@radix-ui/react-separator";
 import {useNavigate, useParams} from "react-router-dom";
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 import MonthlyInteractionChart from "@/components/interaction-chart.tsx";
-import SomeTable from "@/components/some-table.tsx";
+import Activities from "@/components/activities.tsx";
+import {getLogUser} from "@/services/user/user.ts";
+import {getDepartment} from "@/services/user/department/department.ts";
+import {Separator} from "@radix-ui/react-separator";
+import {
+    getActiveSessions,
+    getInteractionLogs,
+    getSessions, InteractionLogsPaginatedFilterRequest,
+    PaginatedFilterRequest
+} from "@/services/interaction/interaction.ts";
+import {getReader} from "@/services/reader/reader.ts";
+import {getLocation} from "@/services/reader/location/location.ts";
+import {Pin} from "lucide-react";
+import {Constants} from "@/services/util/constants.ts";
 
 interface ProfilePageProps {
-    type: "users" | "readers",
-    avatar: string | null,
-    header: string,
-    description: string,
-    fields: {
-        name: string,
-        value: string,
-        link: string | null
-    }[],
-    graphData: {
-        name: string,
-        value: number
-    }[],
-    statistics: {
-        name: string,
-        value: string
-    }[],
-    interactionsTable: {
-        user: boolean,
-        reader: boolean,
-        dateTime: boolean,
-        logType: boolean
-    },
-    sessionsTable: {
-        user: boolean,
-        reader: boolean,
-        sessionStart: boolean,
-        sessionEnd: boolean
-    }
+    type: "users" | "readers";
+    avatar: string | null;
+    header: string;
+    description: string;
+    fields: { name: string; value: string; link: string | null }[];
+    statistics: { name: string; value: string }[];
+    interactionsTable: { user: boolean; reader: boolean; dateTime: boolean; logType: boolean };
+    sessionsTable: { user: boolean; reader: boolean; sessionStart: boolean; sessionEnd: boolean };
 }
-
-const profileDataMap: Record<ProfilePageProps["type"], ProfilePageProps> = {
-    users: {
-        type: "users",
-        avatar: "https://cdn3d.iconscout.com/3d/premium/thumb/boy-avatar-3d-icon-download-in-png-blend-fbx-gltf-file-formats--boys-male-man-pack-avatars-icons-5187865.png?f=webp",
-        header: "Doe, John",
-        description: "User Profile Details",
-        fields: [
-            {name: "Full Name", value: "John Doe", link: null},
-            {name: "Full Name", value: "John Doe", link: null},
-            {name: "Full Name", value: "John Doe", link: null},
-            {name: "Full Name", value: "John Doe", link: null},
-            {name: "Full Name", value: "John Doe", link: "1234"}
-        ],
-        graphData: [],
-        statistics: [
-            {name: "Stats Header 1", value: "Stats Value 1"},
-            {name: "Stats Header 2", value: "Stats Value 2"},
-            {name: "Stats Header 3", value: "Stats Value 3"},
-            {name: "Stats Header 4", value: "Stats Value 4"}
-        ],
-        interactionsTable: {user: true, reader: true, dateTime: true, logType: true},
-        sessionsTable: {user: true, reader: true, sessionStart: true, sessionEnd: true}
-    },
-    readers: {
-        type: "readers",
-        avatar: null,
-        header: "Reader Profile",
-        description: "Reader Profile Details",
-        fields: [],
-        graphData: [],
-        statistics: [],
-        interactionsTable: {user: true, reader: false, dateTime: true, logType: true},
-        sessionsTable: {user: true, reader: false, sessionStart: true, sessionEnd: true}
-    }
-};
 
 export default function ProfilePage() {
     const {type, id} = useParams<{ type: ProfilePageProps["type"]; id: string }>();
+    const [profileData, setProfileData] = useState<ProfilePageProps | null>(null);
     const navigate = useNavigate();
 
-    console.log(type);
-    console.log(id);
-
     useEffect(() => {
-        if (!type || !profileDataMap[type]) {
-            navigate("/dashboard/overview");
+        const fetchProfile = async () => {
+            if (!type) {
+                navigate("/*");
+                return;
+            }
+
+            if (type === "users" && id) {
+
+                try {
+                    const user = await getLogUser(id);
+
+                    const department = user.department ? await getDepartment(user.department) : null;
+
+                    const sessionFilter: PaginatedFilterRequest = {
+                        page: 1,
+                        pageSize: 1,
+                        userIds: [user.id],
+                        readerIds: null,
+                        from: null,
+                        to: null,
+                    }
+
+                    const activeSession = (await getActiveSessions(sessionFilter)).items[0] ?? null;
+
+                    const status = activeSession ? "Active at " + (await getReader(activeSession.logReaderId)).name : "Not Active";
+
+                    const sessions = await getSessions(sessionFilter);
+
+                    const interactionFilter: InteractionLogsPaginatedFilterRequest = {
+                        ...sessionFilter,
+                        interactionTypes: null
+                    }
+
+                    const interactions = await getInteractionLogs(interactionFilter)
+
+                    const userProfileData: ProfilePageProps = {
+                        type: "users",
+                        avatar: Constants.GRINGOTTS_USER_PHOTOS_URL + "/" + user.id + ".png",
+                        header: user.lastName + ", " + user.firstName + " " + ((user.middleName ?? user.middleName) ?? ""),
+                        description: "User Profile Details",
+                        fields: [
+                            {name: "School Id", value: user.schoolId, link: null},
+                            {name: "Card Id", value: user.cardId, link: null},
+                            {name: "Sex", value: user.sex === 0 ? 'Male' : 'Female', link: null},
+                            {
+                                name: "Affiliation",
+                                value: user.affiliation === 0 ? 'Student' : user.affiliation === 1 ? 'Faculty' : user.affiliation === 2 ? 'Staff' : 'Administrator',
+                                link: null
+                            },
+                            {name: "Department", value: department?.name ?? "No Department", link: null},
+                        ],
+                        statistics: [
+                            {name: "Total Interactions", value: interactions.totalRecords.toString()},
+                            {name: "Total Sessions", value: sessions.totalRecords.toString()},
+                            {name: "Status", value: status},
+                            {name: "---------", value: "Coming Soon"}
+                        ],
+                        interactionsTable: {user: true, reader: true, dateTime: true, logType: true},
+                        sessionsTable: {user: true, reader: true, sessionStart: true, sessionEnd: true}
+                    };
+
+                    setProfileData(userProfileData);
+                } catch (_) {
+                    navigate("/*")
+                }
+            } else if (type === "readers" && id) {
+                try {
+                    const reader = await getReader(id);
+
+                    const location = reader.location ? await getLocation(reader.location) : null;
+
+                    const sessionFilter: PaginatedFilterRequest = {
+                        page: 0,
+                        pageSize: 0,
+                        userIds: null,
+                        readerIds: [reader.id],
+                        from: null,
+                        to: null,
+                    }
+
+                    const activeSession = await getActiveSessions(sessionFilter);
+
+                    const sessions = await getSessions(sessionFilter);
+
+                    const interactionFilter: InteractionLogsPaginatedFilterRequest = {
+                        ...sessionFilter,
+                        interactionTypes: null
+                    }
+
+                    const interactions = await getInteractionLogs(interactionFilter)
+
+                    const readerProfileData: ProfilePageProps = {
+                        type: "readers",
+                        avatar: null,
+                        header: reader.name,
+                        description: "Reader Details",
+                        fields: [
+                            {
+                                name: "Location",
+                                value: location ? location.buildingName + " - " + location.roomName : "No Location",
+                                link: null
+                            }
+                        ],
+                        statistics: [
+                            {name: "Total Interactions", value: interactions.totalRecords.toString()},
+                            {name: "Total Sessions", value: sessions.totalRecords.toString()},
+                            {name: "Active Users", value: activeSession.totalRecords.toString()},
+                            {name: "---------", value: "Coming Soon"}
+                        ],
+                        interactionsTable: {user: true, reader: true, dateTime: true, logType: true},
+                        sessionsTable: {user: true, reader: true, sessionStart: true, sessionEnd: true}
+                    };
+
+                    setProfileData(readerProfileData);
+                } catch (_) {
+                    navigate("/*");
+                }
+            }
         }
-    }, [type, navigate]);
 
-    if (!type || !profileDataMap[type]) {
-        return null; // Prevent rendering while navigating
+        fetchProfile();
+    }, [type, id, navigate]);
+
+    if (!profileData) {
+        return <div>Loading...</div>;
     }
-
-    const profileData = profileDataMap[type];
-
-    // Card Header - bg-[#E7F6E3]
 
     return (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-10 p-3 gap-3">
-
-            <Card className="col-span-full flex flex-col md:col-span-full lg:col-span-full lg:row-span-2 lg:flex-col">
-                <CardHeader className="border-b">
+            <Card className="col-span-full flex flex-col lg:col-span-full lg:row-span-2">
+                <CardHeader className="border-b border-primary bg-secondary">
                     <CardTitle className="flex justify-around">
                         <div className="flex items-center gap-4">
-                            {
-                                profileData.avatar &&
+                            {profileData.avatar ? (
                                 <Avatar className="w-24 h-24 border-[2px] border-primary">
-                                    <AvatarImage
-                                        src={profileData.avatar}/>
+                                    <AvatarImage src={profileData.avatar}/>
                                 </Avatar>
-                            }
+                            ) : (<Pin size="50px"></Pin>)}
 
                             <div>
                                 <h1 className="text-xl font-bold text-primary">{profileData.header}</h1>
@@ -136,54 +200,53 @@ export default function ProfilePage() {
                             </div>
 
                             {index !== profileData.fields.length - 1 &&
-                                <Separator orientation="vertical" className="h-full w-[3px] bg-gray-300 bg-muted"/>}
+                                <Separator orientation="vertical" className="h-full w-[1px] bg-gray-300 bg-primary"/>}
                         </>
                     ))}
                 </CardContent>
             </Card>
 
-            <Card className="col-span-full md:col-span-full lg:col-span-6 lg:row-span-2">
+            <Card className="col-span-full lg:col-span-6 lg:row-span-2">
                 <CardHeader className="border-b">
                     <CardTitle>
-                        <button className="hover:underline text-primary"
-                                onClick={() => navigate("/dashboard/logs")}>Logs Overview
+                        <button className="hover:underline text-primary" onClick={() => navigate("/dashboard/logs")}>
+                            Logs Overview
                         </button>
                     </CardTitle>
                     <CardDescription>
-                        {
-                            (() => {
-                                switch (profileData.type) {
-                                    case "users":
-                                        return <>User activity logs within ($MONTH)</>;
-                                    case "readers":
-                                        return <>Reader interaction logs within ($MONTH)</>;
-                                }
-                            })()
-                        }
+                        {profileData.type === "users" ? "User activity logs within ($MONTH)" : "Reader interaction logs within ($MONTH)"}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="py-10">
-                    <MonthlyInteractionChart type={"overall"} id={null}></MonthlyInteractionChart>
+                    <MonthlyInteractionChart
+                        type={type!}
+                        id={id ?? null}
+                        activeBars={{
+                            entryCount: false,
+                            exitCount: false,
+                            unauthorizedCount: false,
+                            fallbackCount: false,
+                            totalCount: true
+                        }}
+                    />
                 </CardContent>
             </Card>
-            {
-                profileData.statistics.slice(0, 4).map((value, _) => (
-                    <>
-                        <Card
-                            className="col-span-1 md:col-span-1 lg:col-span-2 flex flex-col justify-center items-center text-center">
-                            <CardHeader>
-                                <CardTitle className="text-lg font-bold text-primary">
-                                    <h1>{value.value}</h1>
-                                </CardTitle>
-                                <p className="text-md text-gray-400">{value.name}</p>
-                            </CardHeader>
-                        </Card>
-                    </>
-                ))
-            }
+
+            {profileData.statistics.slice(0, 4).map((stat, index) => (
+                <Card key={index}
+                      className="min-h-[200px] bg-secondary col-span-1 lg:col-span-2 flex flex-col justify-center items-center text-center">
+                    <CardHeader>
+                        <CardTitle className="text-[30px] font-bold text-primary">
+                            <h1>{stat.value}</h1>
+                        </CardTitle>
+                        <p className="text-md text-gray-400">{stat.name}</p>
+                    </CardHeader>
+                </Card>
+            ))}
+
             <div className="col-span-full">
-                <SomeTable></SomeTable>
+                <Activities size={15} type={type} id={id ?? ""}/>
             </div>
         </div>
-    )
+    );
 }

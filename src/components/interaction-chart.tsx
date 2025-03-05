@@ -1,42 +1,79 @@
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import {useEffect, useState} from 'react';
+import {ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid} from "recharts";
+import {GetInteractionLogsMonthlyStatsRequest, InteractionLogCount} from "@/services/stats/stats";
+import {getInteractionLogsMonthlyStats} from "@/services/stats/stats";
 
-// Function to generate days of the current month
-const generateMonthlyData = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed
-    const daysInMonth = new Date(year, month + 1, 0).getDate(); // Get last day of month
+interface MonthlyInteractionChartProps {
+    type: "users" | "readers" | "overall";
+    id: string | null;
+    activeBars: { [key: string]: boolean }; // To control visibility of each bar
+}
 
-    return Array.from({ length: daysInMonth }, (_, i) => ({
-        name: `${i + 1}`, // Day of the month
-        value: Math.floor(Math.random() * 1000), // Replace with actual data
-    }));
-};
+export default function MonthlyInteractionChart({type, id, activeBars}: MonthlyInteractionChartProps) {
+    const [data, setData] = useState<InteractionLogCount[]>([]); // Default empty data for initialization
 
-const data = generateMonthlyData();
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const request: GetInteractionLogsMonthlyStatsRequest = {
+                    userIds: type === "users" && id ? [id] : null,
+                    readerIds: type === "readers" && id ? [id] : null,
+                };
 
-export default function MonthlyInteractionChart({type, id} : { type: "users" | "readers" | "locations" | "departments" | "overall", id: string | null }) {
+                const response = await getInteractionLogsMonthlyStats(request);
+
+                // Update chart data based on the response logs
+                const updatedData = response.dailyInteractionLogsCount;
+
+                setData(updatedData); // Update chart data state
+            } catch (error) {
+                console.error(error);
+                setData([]); // Reset to default data in case of error
+            }
+        };
+
+        fetchData();
+    }, [type, id]);
+
     return (
         <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data}>
-                <CartesianGrid  vertical={false} />
+                <CartesianGrid vertical={false}/>
                 <XAxis
-                    dataKey="name"
-                    stroke="hsl(var(--muted-foreground)"
+                    dataKey="date"
+                    stroke="hsl(var(--muted-foreground))"
                     tickLine={false}
                     tickMargin={10}
                     axisLine={false}
-                    tickFormatter={(value) => value.slice(0, 3)}
                 />
                 <YAxis
-                    dataKey="value"
-                    stroke="hsl(var(--muted-foreground)"
+                    dataKey=""
+                    stroke="hsl(var(--muted-foreground))"
                     tickLine={false}
                     tickMargin={10}
                     axisLine={false}
                 />
-                <Tooltip />
-                <Bar dataKey="value" fill={"hsl(var(--primary)"} radius={[3, 3, 0, 0]} />
+                <Tooltip/>
+
+
+                {activeBars.entryCount && (
+                    <Bar dataKey="entryCount" stackId="a" fill="hsl(139, 65%, 40%, 0.9)" name="Entry"/>
+                )}
+                {activeBars.exitCount && (
+                    <Bar dataKey="exitCount" stackId="a" fill="hsl(140, 74%, 60%, 0.8)" name="Exit"/>
+                )}
+                {activeBars.unauthorizedCount && (
+                    <Bar dataKey="unauthorizedCount" stackId="b" fill="hsl(0, 0%, 40%, 0.8)" name="Unauthorized"/>
+                )}
+                {activeBars.fallbackCount && (
+                    <Bar dataKey="fallbackCount" stackId="b" fill="hsl(0, 0%, 50%, 0.8)" name="Fallback"/>
+                )}
+
+                {activeBars.totalCount && (
+                    <Bar dataKey="totalCount" fill="hsl(139, 65%, 40%, 0.9)" name="Interaction" radius={[5,5,5,5]}/>
+                )}
+
+
             </BarChart>
         </ResponsiveContainer>
     );

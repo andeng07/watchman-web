@@ -27,7 +27,9 @@ export default function DashboardPage() {
                 <div className="flex flex-1">
                     <AppSidebar />
                     <SidebarInset className="flex flex-1">
-                        <Outlet />
+                        <div className="pt-[--header-height]">
+                            <Outlet />
+                        </div>
                     </SidebarInset>
                 </div>
             </SidebarProvider>

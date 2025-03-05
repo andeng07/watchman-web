@@ -9,7 +9,7 @@ import {
 import * as React from "react";
 
 export function PaginationComponent({ totalPages, currentPage, setCurrentPage } : { totalPages: number, currentPage: number, setCurrentPage: (page: number) => void } ) {
-    const handlePageChange = (event: React.MouseEvent | React.FocusEvent, page: number) => {
+    const handlePageChange = (event: React.MouseEvent | React.KeyboardEvent, page: number) => {
         event.preventDefault();
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
@@ -48,11 +48,16 @@ export function PaginationComponent({ totalPages, currentPage, setCurrentPage } 
                     <PaginationItem key={index}>
                         {page === "..." ? (
                             <input
-                                type="number"
                                 className="w-12 text-center border rounded-md px-1"
                                 min={1}
                                 max={totalPages}
-                                onBlur={(e) => handlePageChange(e, Number(e.target.value))}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        const target = e.target as HTMLInputElement;
+                                        handlePageChange(e, Number(target.value));
+                                        target.value = ""
+                                    }
+                                }}
                                 placeholder="..."
                             />
                         ) : (
