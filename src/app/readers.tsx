@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {useEffect, useState} from "react";
+import {Card, CardContent, CardHeader} from "@/components/ui/card";
 import ReadersTable from "@/components/readers-table.tsx";
 import SearchFilter2 from "@/components/SearchFilter2.tsx";
 import {ReaderFilter} from "@/services/reader/reader.ts";
 import {NewReaderAlertDialog} from "@/components/create-reader-dialog.tsx";
+import {Button} from "@/components/ui/button.tsx";
 
 export default function LogReaderPage() {
     const [filter, setFilter] = useState<ReaderFilter>({
@@ -29,12 +30,14 @@ export default function LogReaderPage() {
                 <blockquote className="px-5 text-gray-400">Showcasing a list of registered log readers.</blockquote>
             </div>
 
-            <NewReaderAlertDialog></NewReaderAlertDialog>
+            <NewReaderAlertDialog trigger={<Button className="w-[100px]" variant={"default"}>Add Reader</Button>}
+                                  reader={null}></NewReaderAlertDialog>
 
-            <Card className="w-full">
+            <Card className="grid grid-cols-1 w-full">
                 <CardHeader className="border-b border-gray-400">
                     <div className="flex flex-col lg:flex-row md:flex-row justify-between gap-4">
-                        <SearchFilter2 searchLabel="Enter Reader Name" searchValue={selectedReaders} setSearchValue={setSelectedReaders} />
+                        <SearchFilter2 searchLabel="Enter Reader Name" searchValue={selectedReaders}
+                                       setSearchValue={setSelectedReaders}/>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -42,7 +45,8 @@ export default function LogReaderPage() {
                         id: false,
                         name: true,
                         location: true,
-                        readPageNav: true
+                        readPageNav: true,
+                        actions: true
                     }} filter={filter}/>
                 </CardContent>
             </Card>

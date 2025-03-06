@@ -1,10 +1,12 @@
 import {useEffect, useState} from "react";
 import {PaginationComponent} from "@/components/pagination.tsx";
-import {getLogUsers, LogUser, LogUserFilter} from "@/services/user/user.ts";
+import {deleteLogUser, getLogUsers, LogUser, LogUserFilter} from "@/services/user/user.ts";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "./ui/table";
 import {UserPreviewDialog} from "@/components/user-content-dialog.tsx";
 import DateBadge from "@/components/date-badge.tsx";
 import {Department, getDepartment} from "@/services/user/department/department.ts";
+import {Button} from "@/components/ui/button.tsx";
+import {NewUserAlertDialog} from "@/components/create-user-dialog.tsx";
 
 const tableConfig = {
     columns: {
@@ -16,6 +18,7 @@ const tableConfig = {
         sex: {label: "Sex"},
         department: {label: "Department"},
         accessExpiry: {label: "Access Expiry"},
+        actions: {label: "Actions"},
     }
 };
 
@@ -28,23 +31,24 @@ export default function UsersTable({tableProps, filter}: {
         affiliation: boolean,
         sex: boolean,
         department: boolean,
-        accessExpiry: boolean
+        accessExpiry: boolean,
+        actions: boolean
     },
     filter: LogUserFilter
 }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [data, setData] = useState<{user: LogUser, department: Department}[]>([]);
+    const [data, setData] = useState<{ user: LogUser, department: Department }[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
             // Fetch users first
-            const user = await getLogUsers({ ...filter, page: currentPage });
+            const user = await getLogUsers({...filter, page: currentPage});
 
             // Assuming user has an ID or another property to fetch departments for
             const departments = await Promise.all(user.items.map(async (userItem) => {
                 const department = await getDepartment(userItem.department ?? ""); // Pass individual user for department fetch
-                return { user: userItem, department }; // Return user with department
+                return {user: userItem, department}; // Return user with department
             }));
 
             setTotalPages(Math.ceil(user.totalRecords / filter.pageSize));
@@ -100,6 +104,14 @@ export default function UsersTable({tableProps, filter}: {
                                         />
                                     </TableCell>
                                 )}
+                                {tableProps.actions && <TableCell>
+                                    <div className="flex gap-2 justify-center">
+                                        <NewUserAlertDialog trigger={<Button variant={"outline"}>Edit</Button>}
+                                                            userProps={data.user}/>
+                                        <Button variant={"destructive"}
+                                                onClick={() => deleteLogUser(data.user.id)}>Delete</Button>
+                                    </div>
+                                </TableCell>}
                             </TableRow>
                         );
                     })}

@@ -1,11 +1,12 @@
 import {useEffect, useState} from "react";
 import {PaginationComponent} from "@/components/pagination.tsx";
-import {getReaders, Reader, ReaderFilter} from "@/services/reader/reader.ts";
+import {deleteReader, getReaders, Reader, ReaderFilter} from "@/services/reader/reader.ts";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "./ui/table";
 import {ReaderPreviewDialog} from "@/components/reader-content-dialog.tsx";
 import {getLocation} from "@/services/reader/location/location.ts";
 import {Button} from "@/components/ui/button.tsx";
 import {useNavigate} from "react-router-dom";
+import {NewReaderAlertDialog} from "@/components/create-reader-dialog.tsx";
 
 const tableConfig = {
     columns: {
@@ -13,6 +14,7 @@ const tableConfig = {
         name: {label: "Reader Name"},
         location: {label: "Location"},
         readPageNav: {label: "Read Page"},
+        actions: {label: "Actions"},
     }
 };
 
@@ -21,7 +23,8 @@ export default function ReadersTable({tableProps, filter}: {
         id: boolean,
         name: boolean,
         location: boolean,
-        readPageNav: boolean
+        readPageNav: boolean,
+        actions: boolean,
     },
     filter: ReaderFilter
 }) {
@@ -75,23 +78,34 @@ export default function ReadersTable({tableProps, filter}: {
                 </TableHeader>
                 <TableBody>
                     {readers.map((reader) => (
-                        <TableRow key={reader.id} >
+                        <TableRow key={reader.id}>
                             {tableProps.id && <TableCell>{reader.id}</TableCell>}
                             {tableProps.name && (
-                                <TableCell><ReaderPreviewDialog reader={reader} /></TableCell>
+                                <TableCell><ReaderPreviewDialog reader={reader}/></TableCell>
                             )}
                             {tableProps.location && (
                                 <TableCell>{locations[reader.id] ?? "Loading..."}</TableCell>
                             )}
-                            { tableProps.readPageNav && (
-                                <TableCell><Button variant={"default"} onClick={() => navigate("/read/" + reader.id)}>Go to Read Page</Button></TableCell>
-                            ) }
+                            {tableProps.readPageNav && (
+                                <TableCell><Button variant={"outline"} onClick={() => navigate("/read/" + reader.id)}>Go
+                                    to Read View</Button></TableCell>
+                            )}
+                            {tableProps.actions && (
+                                <TableCell>
+                                    <div className="flex gap-2 justify-center">
+                                        <NewReaderAlertDialog trigger={<Button variant={"outline"}>Edit</Button>}
+                                                              reader={null}></NewReaderAlertDialog>
+                                        <Button variant={"destructive"}
+                                                onClick={() => deleteReader(reader.id)}>Delete</Button>
+                                    </div>
+                                </TableCell>
+                            )}
                         </TableRow>
                     ))}
                 </TableBody>
             </Table>
 
-            <PaginationComponent totalPages={totalPages} currentPage={currentPage} setCurrentPage={setCurrentPage} />
+            <PaginationComponent totalPages={totalPages} currentPage={currentPage} setCurrentPage={setCurrentPage}/>
         </div>
     );
 }

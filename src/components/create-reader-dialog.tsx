@@ -14,11 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import * as React from "react";
-import { addReader, ReaderProps } from "@/services/reader/reader.ts";
+import {addReader, Reader, ReaderProps, updateReader} from "@/services/reader/reader.ts";
 import {getLocations, Location, LocationFilter} from "@/services/reader/location/location.ts";
 
-export function NewReaderAlertDialog() {
-    const [formData, setFormData] = useState<ReaderProps>({
+export function NewReaderAlertDialog({trigger, reader}: {trigger: React.ReactNode, reader: Reader | null}) {
+    const [formData, setFormData] = useState<ReaderProps>(reader ?? {
         name: "",
         location: "",
     });
@@ -52,7 +52,7 @@ export function NewReaderAlertDialog() {
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button className="w-[100px]" variant={"default"}>Add Reader</Button>
+                {trigger}
             </AlertDialogTrigger>
             <AlertDialogContent className="max-h-[80vh] overflow-y-auto">
                 <AlertDialogHeader>
@@ -69,10 +69,10 @@ export function NewReaderAlertDialog() {
                     </div>
 
                     <div>
-                        <Label htmlFor="locationId">Location</Label>
+                        <Label htmlFor="location">Location</Label>
                         <select
-                            id="locationId"
-                            name="locationId"
+                            id="location"
+                            name="location"
                             onChange={handleInputChange}
                             className="w-full p-2 border rounded-md"
                         >
@@ -91,7 +91,7 @@ export function NewReaderAlertDialog() {
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction asChild>
-                        <Button onClick={() => addReader(formData)}>
+                        <Button onClick={() => reader ? updateReader(reader.id, formData) : addReader(formData)}>
                             Confirm
                         </Button>
                     </AlertDialogAction>

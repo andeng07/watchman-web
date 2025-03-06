@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {useEffect, useState} from "react";
+import {Card, CardContent, CardHeader} from "@/components/ui/card";
 import UsersTable from "@/components/users-table.tsx";
 import SearchFilter2 from "@/components/SearchFilter2.tsx";
 import {LogUserFilter} from "@/services/user/user.ts";
 import {NewUserAlertDialog} from "@/components/create-user-dialog.tsx";
+import {Button} from "@/components/ui/button.tsx";
 
 export default function LogUserPage() {
     const [filter, setFilter] = useState<LogUserFilter>({
@@ -34,27 +35,32 @@ export default function LogUserPage() {
                 <blockquote className="px-5 text-gray-400">Showcasing a list of registered log users.</blockquote>
             </div>
 
-            <NewUserAlertDialog/>
+            <NewUserAlertDialog trigger={<Button className="w-[100px]" variant={"default"}>Add User</Button>}
+                                userProps={null}/>
 
-            <Card className="w-full">
-                <CardHeader className="border-b border-gray-400">
-                    <div className="flex flex-col lg:flex-row md:flex-row justify-between gap-4">
-                        <SearchFilter2 searchLabel="Enter User Name" searchValue={selectedUsers} setSearchValue={setSelectedUsers} />
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <UsersTable tableProps={{
-                        id: false,
-                        cardId: true,
-                        schoolId: true,
-                        fullName: true,
-                        affiliation: true,
-                        sex: true,
-                        department: true,
-                        accessExpiry: true
-                    }} filter={filter}/>
-                </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 w-full">
+                <Card className="col-span-full w-full">
+                    <CardHeader className="border-b border-gray-400">
+                        <div className="flex flex-col lg:flex-row md:flex-row justify-between gap-4">
+                            <SearchFilter2 searchLabel="Enter User Name" searchValue={selectedUsers}
+                                           setSearchValue={setSelectedUsers}/>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <UsersTable tableProps={{
+                            id: false,
+                            cardId: true,
+                            schoolId: true,
+                            fullName: true,
+                            affiliation: true,
+                            sex: true,
+                            department: true,
+                            accessExpiry: true,
+                            actions: true
+                        }} filter={filter}/>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }

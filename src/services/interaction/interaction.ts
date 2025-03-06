@@ -69,6 +69,18 @@ export const addInteractionLog = async (request: AddInteractionRequest): Promise
     return response.json();
 }
 
+export const forceLogout = async (id: string): Promise<InteractionLog> => {
+    const response = await fetch(Constants.GRINGOTTS_BASE_URL + `/logs/${id}/force-logout`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `${localStorage.getItem('token')}`, // Add token to Authorization header
+        },
+    })
+
+    return response.json();
+}
+
 export const exportSessions = async (request: FilterRequest): Promise<Blob | null> => {
     try {
         // Perform the export (e.g., send a request to the backend)

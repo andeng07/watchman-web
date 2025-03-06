@@ -113,7 +113,9 @@ export default function InteractionLogForm() {
         setTimeout(() => {
             setStatus("idle");
             setCardId("");
+            setAddInteractionLogResponse(null)
         }, 2000);
+
     };
 
     console.log(location)

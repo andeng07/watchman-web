@@ -1,21 +1,26 @@
-import { useEffect, useState } from "react";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table.tsx";
-import { PaginationComponent } from "@/components/pagination.tsx";
-import {ActiveSession, getActiveSessions, PaginatedFilterRequest} from "@/services/interaction/interaction.ts";
-import { getReader, Reader } from "@/services/reader/reader.ts";
-import { getLogUser, LogUser } from "@/services/user/user.ts";
-import { UserPreviewDialog } from "@/components/user-content-dialog.tsx";
-import { ReaderPreviewDialog } from "@/components/reader-content-dialog.tsx";
+import {useEffect, useState} from "react";
+import {Table, TableHeader, TableRow, TableHead, TableBody, TableCell} from "@/components/ui/table.tsx";
+import {PaginationComponent} from "@/components/pagination.tsx";
+import {
+    ActiveSession,
+    forceLogout,
+    getActiveSessions,
+    PaginatedFilterRequest
+} from "@/services/interaction/interaction.ts";
+import {getReader, Reader} from "@/services/reader/reader.ts";
+import {getLogUser, LogUser} from "@/services/user/user.ts";
+import {UserPreviewDialog} from "@/components/user-content-dialog.tsx";
+import {ReaderPreviewDialog} from "@/components/reader-content-dialog.tsx";
 import DateBadge from "@/components/date-badge.tsx";
 import {Button} from "@/components/ui/button.tsx";
 
 const tableConfig = {
     columns: {
-        id: { label: "ID" },
-        logReader: { label: "Reader" },
-        logUser: { label: "User" },
-        startDate: { label: "Log In" },
-        timeElapsed: { label: "Session Time" },
+        id: {label: "ID"},
+        logReader: {label: "Reader"},
+        logUser: {label: "User"},
+        startDate: {label: "Log In"},
+        timeElapsed: {label: "Session Time"},
     }
 };
 
@@ -34,7 +39,7 @@ const calculateTimeElapsed = (startDate: string, endDate: string | null) => {
     return `${hours}h ${minutes}m ${seconds}s`;
 };
 
-export default function ActiveSessionsTable({ tableProps, filter }: {
+export default function ActiveSessionsTable({tableProps, filter}: {
     tableProps: {
         id: boolean,
         logReader: boolean,
@@ -58,12 +63,12 @@ export default function ActiveSessionsTable({ tableProps, filter }: {
 
     useEffect(() => {
         const fetchLogs = async () => {
-            const logs = await getActiveSessions({ ...filter, page: currentPage });
+            const logs = await getActiveSessions({...filter, page: currentPage});
 
             setTotalPages(Math.ceil(logs.totalRecords / filter.pageSize));
 
-            const updatedReaders = { ...data.readers };
-            const updatedUsers = { ...data.users };
+            const updatedReaders = {...data.readers};
+            const updatedUsers = {...data.users};
 
             const readerPromises: Record<string, Promise<Reader>> = {};
             const userPromises: Record<string, Promise<LogUser | null>> = {};
@@ -116,7 +121,7 @@ export default function ActiveSessionsTable({ tableProps, filter }: {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        {Object.entries(tableConfig.columns).map(([key, { label }]) => (
+                        {Object.entries(tableConfig.columns).map(([key, {label}]) => (
                             tableProps[key as keyof typeof tableConfig.columns] && (
                                 <TableHead key={key}>{label}</TableHead>
                             )
@@ -130,26 +135,29 @@ export default function ActiveSessionsTable({ tableProps, filter }: {
                             {tableProps.logReader && (
                                 <TableCell>
                                     {data.readers[log.logReaderId]
-                                        ? <ReaderPreviewDialog reader={data.readers[log.logReaderId]!} />
+                                        ? <ReaderPreviewDialog reader={data.readers[log.logReaderId]!}/>
                                         : "N/A"}
                                 </TableCell>
                             )}
                             {tableProps.logUser && (
                                 <TableCell>
                                     {data.users[log.logUserId ?? ""]
-                                        ? <UserPreviewDialog user={data.users[log.logUserId!]!} />
+                                        ? <UserPreviewDialog user={data.users[log.logUserId!]!}/>
                                         : "N/A"}
                                 </TableCell>
                             )}
-                            {tableProps.startDate && <TableCell><DateBadge variant="entry" dateTime={log.startDate} /></TableCell>}
+                            {tableProps.startDate &&
+                                <TableCell><DateBadge variant="entry" dateTime={log.startDate}/></TableCell>}
                             {tableProps.timeElapsed && <TableCell>{log.timeElapsed}</TableCell>}
-                            { (<TableCell><Button variant="destructive">Force Log Out</Button></TableCell>) }
+                            {(<TableCell><Button variant="destructive"
+                                                 onClick={() => forceLogout(data.users[log.logUserId!]!.id)}>Force Log
+                                Out</Button></TableCell>)}
                         </TableRow>
                     ))}
                 </TableBody>
             </Table>
 
-            <PaginationComponent totalPages={totalPages} currentPage={currentPage} setCurrentPage={setCurrentPage} />
+            <PaginationComponent totalPages={totalPages} currentPage={currentPage} setCurrentPage={setCurrentPage}/>
         </div>
     );
 }

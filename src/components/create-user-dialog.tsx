@@ -13,12 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { addLogUser, LogUserProps, addLogUserPhoto } from "@/services/user/user.ts";
+import {addLogUser, LogUserProps, addLogUserPhoto, LogUser, updateLogUser} from "@/services/user/user.ts";
 import * as React from "react";
 import { Department, DepartmentFilter, getDepartments } from "@/services/user/department/department.ts";
 
-export function NewUserAlertDialog() {
-    const [formData, setFormData] = useState<LogUserProps>({
+export function NewUserAlertDialog({trigger, userProps} : {trigger: React.ReactNode, userProps: LogUser | null }) {
+    const [formData, setFormData] = useState<LogUserProps>(userProps ?? {
         accessExpiry: new Date().toISOString(),
         cardId: "",
         schoolId: "",
@@ -35,6 +35,11 @@ export function NewUserAlertDialog() {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const localDate = new Date(e.target.value);
+        setFormData((prev) => ({ ...prev, accessExpiry: localDate.toISOString() }));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +72,9 @@ export function NewUserAlertDialog() {
     const handleSubmit = async () => {
         try {
             // First, create the user
-            const user = await addLogUser(formData);
+            console.log(userProps ? "exist" : "not exist");
+
+            const user = await (userProps ? updateLogUser(userProps!.id, formData) : addLogUser(formData));
             console.log("User created:", user);
 
             // If a photo is selected, upload it
@@ -80,11 +87,10 @@ export function NewUserAlertDialog() {
         }
     };
 
-
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button className="w-[100px]" variant={"default"}>Add User</Button>
+                {trigger}
             </AlertDialogTrigger>
             <AlertDialogContent className="max-h-[80vh] overflow-y-auto">
                 <AlertDialogHeader>
@@ -168,7 +174,11 @@ export function NewUserAlertDialog() {
                         </select>
                     </div>
 
-                    {/* Photo Upload Field */}
+                    <div>
+                        <Label htmlFor="accessExpiry">Access Expiry</Label>
+                        <Input type="datetime-local" id="accessExpiry" name="accessExpiry" onChange={handleDateChange} />
+                    </div>
+
                     <div>
                         <Label htmlFor="photo">Upload Photo</Label>
                         <Input id="photo" type="file" accept="image/*" onChange={handleFileChange} />
