@@ -36,20 +36,8 @@ const data = {
             icon: Box,
             items: [
                 {
-                    title: "Clients",
-                    url: "/dashboard/clients",
-                },
-                {
-                    title: "Departments",
-                    url: "/dashboard/departments",
-                },
-                {
                     title: "Users",
                     url: "/dashboard/users",
-                },
-                {
-                    title: "Locations",
-                    url: "/dashboard/locations",
                 },
                 {
                     title: "Readers",
